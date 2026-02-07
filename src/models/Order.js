@@ -1,42 +1,31 @@
-const mongoose = require("mongoose");
+const sqlite3 = require("sqlite3").verbose();
+const db = new sqlite3.Database("./database.sqlite");
 
-const OrderSchema = new mongoose.Schema({
+// إنشاء جدول الطلبات
+db.serialize(() => {
 
-name: {
-type: String,
-required: true
-},
+db.run(`
+CREATE TABLE IF NOT EXISTS orders (
 
-phone: {
-type: String,
-required: true
-},
+id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-city: {
-type: String,
-required: true
-},
+name TEXT NOT NULL,
 
-service: {
-type: String,
-default: "كراء معدات"
-},
+phone TEXT NOT NULL,
 
-note: {
-type: String,
-default: ""
-},
+city TEXT NOT NULL,
 
-status: {
-type: String,
-default: "pending"
-},
+service TEXT DEFAULT 'كراء معدات',
 
-createdAt: {
-type: Date,
-default: Date.now
-}
+note TEXT DEFAULT '',
+
+status TEXT DEFAULT 'pending',
+
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+
+)
+`);
 
 });
 
-module.exports = mongoose.model("Order", OrderSchema);
+module.exports = db;
