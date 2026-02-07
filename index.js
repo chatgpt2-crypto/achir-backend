@@ -4,45 +4,40 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// middleware
 app.use(cors());
 app.use(express.json());
 
-// قاعدة بيانات مؤقتة (في الذاكرة)
+// database مؤقت
 let orders = [];
 let nextId = 1;
+
 
 // health check
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     message: "Achir backend working",
-    ordersCount: orders.length
+    orders: orders.length
   });
 });
 
-// جلب جميع الطلبات
+
+// get orders
 app.get("/api/orders", (req, res) => {
   res.json(orders);
 });
 
-// إضافة طلب
-app.post("/api/orders", (req, res) => {
-  const { name, phone, city, type, note } = req.body;
 
-  if (!name || !phone || !city) {
-    return res.status(400).json({
-      message: "name, phone, city required"
-    });
-  }
+// add order
+app.post("/api/orders", (req, res) => {
 
   const order = {
     id: nextId++,
-    name,
-    phone,
-    city,
-    type: type || "",
-    note: note || "",
+    name: req.body.name,
+    phone: req.body.phone,
+    city: req.body.city,
+    type: req.body.type || "",
+    note: req.body.note || "",
     created_at: new Date().toISOString()
   };
 
@@ -52,34 +47,13 @@ app.post("/api/orders", (req, res) => {
     success: true,
     order
   });
+
 });
 
-// تعديل طلب
-app.put("/api/orders/:id", (req, res) => {
-  const id = parseInt(req.params.id);
 
-  const order = orders.find(o => o.id === id);
-
-  if (!order) {
-    return res.status(404).json({
-      message: "order not found"
-    });
-  }
-
-  order.name = req.body.name ?? order.name;
-  order.phone = req.body.phone ?? order.phone;
-  order.city = req.body.city ?? order.city;
-  order.type = req.body.type ?? order.type;
-  order.note = req.body.note ?? order.note;
-
-  res.json({
-    success: true,
-    order
-  });
-});
-
-// حذف طلب
+// delete order
 app.delete("/api/orders/:id", (req, res) => {
+
   const id = parseInt(req.params.id);
 
   orders = orders.filter(o => o.id !== id);
@@ -87,9 +61,10 @@ app.delete("/api/orders/:id", (req, res) => {
   res.json({
     success: true
   });
+
 });
 
-// تشغيل السيرفر
+
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("Achir backend running on port", PORT);
 });
