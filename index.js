@@ -7,17 +7,22 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// database مؤقت
 let orders = [];
 let nextId = 1;
+
+
+// الصفحة الرئيسية
+app.get("/", (req, res) => {
+  res.json({
+    message: "Achir backend running"
+  });
+});
 
 
 // health check
 app.get("/api/health", (req, res) => {
   res.json({
-    status: "ok",
-    message: "Achir backend working",
-    orders: orders.length
+    status: "ok"
   });
 });
 
@@ -36,7 +41,6 @@ app.post("/api/orders", (req, res) => {
     name: req.body.name,
     phone: req.body.phone,
     city: req.body.city,
-    type: req.body.type || "",
     note: req.body.note || "",
     created_at: new Date().toISOString()
   };
@@ -44,8 +48,7 @@ app.post("/api/orders", (req, res) => {
   orders.unshift(order);
 
   res.json({
-    success: true,
-    order
+    success: true
   });
 
 });
@@ -66,5 +69,5 @@ app.delete("/api/orders/:id", (req, res) => {
 
 
 app.listen(PORT, () => {
-  console.log("Achir backend running on port", PORT);
+  console.log("Server running on port", PORT);
 });
