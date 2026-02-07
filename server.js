@@ -1,67 +1,77 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
+let orders = [];
+let currentId = 1;
+
+// اختبار
+app.get("/", (req, res) => {
+  res.json({ message: "Achir backend working" });
+});
+
+// جلب الطلبات
+app.get("/api/orders", (req, res) => {
+  res.json(orders);
+});
+
+// إضافة طلب
+app.post("/api/orders", (req, res) => {
+
+  const newOrder = {
+    id: currentId++,
+    name: req.body.name,
+    phone: req.body.phone,
+    city: req.body.city,
+    note: req.body.note || "",
+    created_at: new Date().toISOString()
+  };
+
+  orders.push(newOrder);
+
+  res.json({
+    success: true,
+    order: newOrder
+  });
+});
+
+// حذف طلب
+app.delete("/api/orders/:id", (req, res) => {
+
+  const id = parseInt(req.params.id);
+
+  orders = orders.filter(order => order.id !== id);
+
+  res.json({ success: true });
+
+});
+
+// تحديث طلب
+app.put("/api/orders/:id", (req, res) => {
+
+  const id = parseInt(req.params.id);
+
+  const order = orders.find(order => order.id === id);
+
+  if (!order) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  order.name = req.body.name;
+  order.phone = req.body.phone;
+  order.city = req.body.city;
+  order.note = req.body.note;
+
+  res.json({ success: true });
+
+});
+
 const PORT = process.env.PORT || 3000;
 
-// إنشاء قاعدة البيانات
-const db = new sqlite3.Database('./database.db');
-
-// إنشاء جدول الطلبات إذا لم يوجد
-db.run(`
-CREATE TABLE IF NOT EXISTS orders (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  phone TEXT,
-  city TEXT,
-  note TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-`);
-
-// الصفحة الرئيسية
-app.get('/', (req, res) => {
-  res.json({
-    status: "Achir backend يعمل بنجاح"
-  });
-});
-
-// عرض الطلبات
-app.get('/api/orders', (req, res) => {
-  db.all("SELECT * FROM orders", [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// إضافة طلب جديد
-app.post('/api/orders', (req, res) => {
-  const { name, phone, city, note } = req.body;
-
-  db.run(
-    "INSERT INTO orders (name, phone, city, note) VALUES (?, ?, ?, ?)",
-    [name, phone, city, note],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      res.json({
-        success: true,
-        orderId: this.lastID
-      });
-    }
-  );
-});
-
-// تشغيل السيرفر
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server started on port", PORT);
 });
