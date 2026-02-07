@@ -1,90 +1,46 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
+
+const authRoutes = require("./src/routes/auth");
+const orderRoutes = require("./src/routes/orders");
+const publicRoutes = require("./src/routes/public");
 
 const app = express();
 
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
 
-// تفعيل CORS للسماح بالاتصال من GitHub Pages
 app.use(cors({
-  origin: "*",
-  methods: ["GET","POST","DELETE"],
-  allowedHeaders: ["Content-Type","Authorization"]
+  origin: function(origin, cb){
+    // allow same-origin / curl / server-to-server
+    if(!origin) return cb(null, true);
+    // allow github pages + your domains
+    if(ALLOWED_ORIGINS.length === 0) return cb(null, true);
+    if(ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error("CORS blocked: " + origin));
+  }
 }));
-
 
 app.use(express.json());
 
+app.get("/", (req,res)=> res.send("Achir Backend is running ✅"));
 
-// توكن الادمن
-const ADMIN_TOKEN = "achir_super_admin_2026";
+app.use("/api/auth", authRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/orders", orderRoutes);
 
+const PORT = process.env.PORT || 3000;
 
-// قاعدة بيانات مؤقتة
-let orders = [];
-
-
-// اختبار السيرفر
-app.get("/", (req,res)=>{
-  res.send("Achir Backend is running");
-});
-
-
-// جلب الطلبات
-app.get("/api/orders", (req,res)=>{
-
-  const token = req.headers.authorization;
-
-  if(!token || token !== "Bearer "+ADMIN_TOKEN){
-    return res.status(401).json({error:"missing_token"});
-  }
-
-  res.json(orders);
-
-});
-
-
-// إضافة طلب
-app.post("/api/orders", (req,res)=>{
-
-  const token = req.headers.authorization;
-
-  if(!token || token !== "Bearer "+ADMIN_TOKEN){
-    return res.status(401).json({error:"missing_token"});
-  }
-
-  const order = {
-    id: Date.now().toString(),
-    name: req.body.name,
-    phone: req.body.phone,
-    city: req.body.city
-  };
-
-  orders.push(order);
-
-  res.json({success:true});
-
-});
-
-
-// حذف طلب
-app.delete("/api/orders/:id", (req,res)=>{
-
-  const token = req.headers.authorization;
-
-  if(!token || token !== "Bearer "+ADMIN_TOKEN){
-    return res.status(401).json({error:"missing_token"});
-  }
-
-  orders = orders.filter(o=>o.id !== req.params.id);
-
-  res.json({success:true});
-
-});
-
-
-// تشغيل السيرفر
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, ()=>{
-  console.log("Server running on port "+PORT);
-});
+mongoose.connect(process.env.MONGODB_URI)
+  .then(()=>{
+    console.log("MongoDB connected");
+    app.listen(PORT, ()=> console.log("Server running on", PORT));
+  })
+  .catch(err=>{
+    console.error("MongoDB error:", err.message);
+    process.exit(1);
+  });
