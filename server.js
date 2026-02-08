@@ -1,22 +1,48 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
+const db = require("./src/db"); // لازم يكون عندك src/db.js
 
 const app = express();
-
-// ✅ CORS (خليه مفتوح مؤقتاً)
-app.use(cors());
-
-// ✅ قراءة JSON
 app.use(express.json());
 
-// ✅ Route الطلبات
-const ordersRoutes = require("./src/routes/orders");
-app.use("/api/orders", ordersRoutes);
+// ✅ CORS (مهم جدا لـ GitHub Pages)
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-// ✅ صفحة صحة السيرفر
+// ✅ Health check
 app.get("/", (req, res) => {
-  res.send("Achir Backend is running");
+  res.send("Achir Backend is running ✅");
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server running on port " + PORT));
+// =============================
+// ✅ Auth Middleware (TOKEN)
+// =============================
+const ADMIN_TOKEN = "achir_super_admin_2026";
+
+function requireToken(req, res, next) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+
+  if (!token) return res.status(401).json({ error: "missing_token" });
+  if (token !== ADMIN_TOKEN) return res.status(403).json({ error: "invalid_token" });
+
+  next();
+}
+
+// =============================
+// ✅ Create table if not exists
+// =============================
+db.run(`
+  CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    city TEXT NOT
